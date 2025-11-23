@@ -67,6 +67,45 @@ export const logoutUser = createAsyncThunk('auth/logout', async () => {
   }
 });
 
+export const updateUser = createAsyncThunk(
+  'auth/updateUser',
+  async (userData: Partial<User>, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { auth: AuthState };
+      const currentUser = state.auth.user;
+      
+      if (!currentUser) {
+        throw new Error('No user logged in');
+      }
+
+      // Merge updated data with current user data
+      const updatedUser = { ...currentUser, ...userData };
+
+      // Update AsyncStorage
+      await AsyncStorage.setItem(STORAGE_KEYS.USER_DATA, JSON.stringify(updatedUser));
+
+      // If this is a registered user (not from DummyJSON API), also update the registered users list
+      const registeredUsersJson = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_USERS);
+      if (registeredUsersJson) {
+        const registeredUsers = JSON.parse(registeredUsersJson);
+        const userIndex = registeredUsers.findIndex((u: User) => u.id === currentUser.id);
+        
+        if (userIndex !== -1) {
+          registeredUsers[userIndex] = updatedUser;
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.REGISTERED_USERS,
+            JSON.stringify(registeredUsers)
+          );
+        }
+      }
+
+      return updatedUser;
+    } catch (error: any) {
+      return rejectWithValue(error.message || 'Update failed');
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -140,6 +179,22 @@ const authSlice = createSlice({
         state.user = null;
         state.isAuthenticated = false;
         state.error = null;
+      });
+
+    // Update User
+    builder
+      .addCase(updateUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateUser.fulfilled, (state, action: PayloadAction<User>) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.error = null;
+      })
+      .addCase(updateUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
