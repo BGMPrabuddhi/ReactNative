@@ -29,12 +29,13 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<any>({});
+  const [loginError, setLoginError] = useState<string | null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [touchedFields, setTouchedFields] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (error) {
-      Alert.alert('Login Failed', error);
+      setLoginError(error);
       dispatch(clearError());
     }
   }, [error]);
@@ -81,6 +82,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
   };
 
   const handleLogin = async () => {
+    setLoginError(null);
     const isValid = await validateForm();
     if (isValid) {
       dispatch(loginUser({ username, password }));
@@ -241,6 +243,16 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
             )}
           </View>
 
+          {/* Login Error Message */}
+          {loginError && (
+            <View style={[styles.loginErrorContainer, { backgroundColor: colors.error + '15', borderColor: colors.error + '40' }]}>
+              <Feather name="alert-circle" size={16} color={colors.error} />
+              <Text style={[styles.loginErrorText, { color: colors.error }]}>
+                {loginError}
+              </Text>
+            </View>
+          )}
+
           {/* Login Button */}
           <TouchableOpacity
             style={[
@@ -359,6 +371,21 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     marginLeft: 6,
+  },
+  loginErrorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 59, 48, 0.1)',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    gap: 8,
+  },
+  loginErrorText: {
+    fontSize: 14,
+    fontWeight: '500',
+    flex: 1,
   },
   button: {
     marginTop: 8,

@@ -8,6 +8,7 @@ import {
   Alert,
   ScrollView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
@@ -71,11 +72,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
     if (isValid) {
       const result = await dispatch(registerUser(formData));
       if (registerUser.fulfilled.match(result)) {
-        Alert.alert(
-          'Success',
-          'Registration successful! Please login with your credentials.',
-          [{ text: 'OK', onPress: () => navigation.navigate('Login') }]
-        );
+        navigation.navigate('Login');
       }
     }
   };
