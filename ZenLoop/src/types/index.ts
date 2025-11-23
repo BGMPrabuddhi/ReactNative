@@ -6,6 +6,7 @@ export interface User {
   firstName: string;
   lastName: string;
   token?: string;
+  image?: string | null;
 }
 
 export interface AuthState {

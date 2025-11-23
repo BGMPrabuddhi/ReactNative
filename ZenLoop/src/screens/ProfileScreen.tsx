@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput, Image } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import { logoutUser, updateUser } from '../redux/slices/authSlice';
 import { toggleTheme, saveTheme } from '../redux/slices/themeSlice';
@@ -19,6 +20,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
+  const [profileImage, setProfileImage] = useState<string | null>(user?.image || null);
   const [editedUser, setEditedUser] = useState({
     firstName: user?.firstName || '',
     lastName: user?.lastName || '',
@@ -30,6 +33,47 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
     newPassword: '',
     confirmPassword: '',
   });
+
+  useEffect(() => {
+    if (user?.image) {
+      setProfileImage(user.image);
+    }
+  }, [user]);
+
+  const handlePickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        Alert.alert('Permission Required', 'Permission to access gallery is required!');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        const imageUri = result.assets[0].uri;
+        setProfileImage(imageUri);
+        
+        // Save immediately to persist the image
+        try {
+          await dispatch(updateUser({ image: imageUri })).unwrap();
+          Alert.alert('Success', 'Profile picture updated!');
+        } catch (error) {
+          Alert.alert('Error', 'Failed to save profile picture');
+          console.error('Save image error:', error);
+        }
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to pick image');
+      console.error('Pick image error:', error);
+    }
+  };
 
   const handleSaveProfile = async () => {
     try {
@@ -43,8 +87,8 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
         return;
       }
 
-      // Dispatch update action
-      await dispatch(updateUser(editedUser)).unwrap();
+      // Dispatch update action with profile image
+      await dispatch(updateUser({ ...editedUser, image: profileImage })).unwrap();
       Alert.alert('Success', 'Profile updated successfully!');
       setIsEditing(false);
     } catch (error: any) {
@@ -64,35 +108,125 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   const handleChangePassword = async () => {
     try {
+      setPasswordError('');
+      
       // Validation
       if (!passwordData.currentPassword.trim()) {
-        Alert.alert('Error', 'Current password is required');
+        setPasswordError('Current password is required');
         return;
       }
       if (!passwordData.newPassword.trim()) {
-        Alert.alert('Error', 'New password is required');
+        setPasswordError('New password is required');
         return;
       }
+      
+      // New password validation
       if (passwordData.newPassword.length < 6) {
-        Alert.alert('Error', 'Password must be at least 6 characters');
+        setPasswordError('Password must be at least 6 characters');
         return;
       }
+      
+      if (!/[A-Z]/.test(passwordData.newPassword)) {
+        setPasswordError('Password must contain at least one uppercase letter');
+        return;
+      }
+      
+      if (!/[0-9]/.test(passwordData.newPassword)) {
+        setPasswordError('Password must contain at least one number');
+        return;
+      }
+      
       if (passwordData.newPassword !== passwordData.confirmPassword) {
-        Alert.alert('Error', 'Passwords do not match');
+        setPasswordError('New password and confirm password do not match');
         return;
       }
 
-      // Here you would verify current password and update to new password
-      // For now, just show success
+      // Verify current password by attempting to authenticate
+      const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+      const { STORAGE_KEYS } = await import('../constants');
+      
+      // Get all stored data
+      const [registeredUsersJson, userDataJson] = await Promise.all([
+        AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_USERS),
+        AsyncStorage.getItem(STORAGE_KEYS.USER_DATA)
+      ]);
+      
+      console.log('=== Password Change Debug ===');
+      console.log('Current user from Redux:', user);
+      console.log('User data from storage:', userDataJson);
+      console.log('Registered users:', registeredUsersJson);
+      
+      if (!registeredUsersJson) {
+        setPasswordError('Password change not available for demo accounts');
+        return;
+      }
+
+      const registeredUsers = JSON.parse(registeredUsersJson);
+      console.log('Parsed registered users:', registeredUsers);
+      
+      // Find user by username or email
+      const currentUserIndex = registeredUsers.findIndex((u: any) => {
+        const usernameMatch = u.username === user?.username;
+        const emailMatch = u.email === user?.email;
+        console.log(`Checking user: ${u.username}, username match: ${usernameMatch}, email match: ${emailMatch}`);
+        return usernameMatch || emailMatch;
+      });
+      
+      console.log('Found user at index:', currentUserIndex);
+      
+      if (currentUserIndex === -1) {
+        setPasswordError('Password change not available for demo accounts');
+        return;
+      }
+
+      const storedUser = registeredUsers[currentUserIndex];
+      console.log('Stored user:', storedUser);
+      console.log('Stored password:', storedUser.password);
+      console.log('Entered password:', passwordData.currentPassword);
+      console.log('Passwords match:', storedUser.password === passwordData.currentPassword);
+      console.log('Password lengths - stored:', storedUser.password?.length, 'entered:', passwordData.currentPassword.length);
+      
+      // Check if user has no password stored (old registration before password field was added)
+      if (!storedUser.password || storedUser.password === undefined) {
+        // Allow user to set their first password
+        // In this case, skip current password verification since there is no current password
+        registeredUsers[currentUserIndex].password = passwordData.newPassword;
+        await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(registeredUsers));
+        
+        Alert.alert('Success', 'Password set successfully! You can now use this password to change it in the future.');
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+        setPasswordError('');
+        setIsChangingPassword(false);
+        return;
+      }
+      
+      // Verify current password matches (trim whitespace)
+      if (storedUser.password?.trim() !== passwordData.currentPassword.trim()) {
+        setPasswordError('Current password is incorrect');
+        return;
+      }
+      
+      // Update password in the array
+      registeredUsers[currentUserIndex].password = passwordData.newPassword;
+      await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(registeredUsers));
+      
+      console.log('Password updated successfully');
+
       Alert.alert('Success', 'Password changed successfully!');
       setPasswordData({
         currentPassword: '',
         newPassword: '',
         confirmPassword: '',
       });
+      setPasswordError('');
       setIsChangingPassword(false);
     } catch (error: any) {
-      Alert.alert('Error', error || 'Failed to change password');
+      console.error('Password change error:', error);
+      setPasswordError(error?.message || 'Failed to change password');
     }
   };
 
@@ -102,6 +236,7 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       newPassword: '',
       confirmPassword: '',
     });
+    setPasswordError('');
     setIsChangingPassword(false);
   };
 
@@ -123,11 +258,20 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <View style={[styles.avatarLarge, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>
-            {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-          </Text>
-        </View>
+        <TouchableOpacity onPress={handlePickImage} style={styles.avatarContainer}>
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+          ) : (
+            <View style={[styles.avatarLarge, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarText}>
+                {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+              </Text>
+            </View>
+          )}
+          <View style={[styles.editImageBadge, { backgroundColor: colors.primary }]}>
+            <Feather name="camera" size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
         <Text style={[styles.name, { color: colors.text }]}>
           {user?.firstName && user?.lastName
             ? `${user.firstName} ${user.lastName}`
@@ -345,6 +489,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
                 />
               </View>
 
+              {/* Error Message */}
+              {passwordError ? (
+                <View style={[styles.errorContainer, { backgroundColor: colors.error + '20' }]}>
+                  <Feather name="alert-circle" size={16} color={colors.error} />
+                  <Text style={[styles.errorText, { color: colors.error }]}>{passwordError}</Text>
+                </View>
+              ) : null}
+
               {/* Action Buttons */}
               <View style={styles.editActions}>
                 <TouchableOpacity
@@ -396,13 +548,33 @@ const styles = StyleSheet.create({
     paddingBottom: 30,
     paddingHorizontal: 20,
   },
+  avatarContainer: {
+    position: 'relative',
+    marginBottom: 16,
+  },
   avatarLarge: {
     width: 100,
     height: 100,
     borderRadius: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+  },
+  avatarImage: {
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+  },
+  editImageBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    borderColor: '#fff',
   },
   avatarText: {
     color: '#fff',
@@ -567,6 +739,18 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+    gap: 8,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 14,
   },
 });
 

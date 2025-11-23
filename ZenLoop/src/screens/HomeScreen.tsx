@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
+  Image,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
@@ -158,11 +159,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
           {/* User Profile Card - Right */}
           <View style={styles.profileCard}>
-            <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarText}>
-                {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-              </Text>
-            </View>
+            {user?.image ? (
+              <Image source={{ uri: user.image }} style={styles.avatarImage} />
+            ) : (
+              <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+                <Text style={styles.avatarText}>
+                  {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+                </Text>
+              </View>
+            )}
           </View>
         </View>
       </View>
@@ -264,6 +269,13 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
+  },
+  avatarImage: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     borderWidth: 2,
     borderColor: 'rgba(255,255,255,0.3)',
   },
