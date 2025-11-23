@@ -17,15 +17,14 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
   const { items: favourites } = useAppSelector((state) => state.favourites);
   const colors = isDarkMode ? COLORS.dark : COLORS.light;
 
-  const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: () => dispatch(logoutUser()),
-      },
-    ]);
+  const handleLogout = async () => {
+    try {
+      console.log('Logout button clicked');
+      await dispatch(logoutUser()).unwrap();
+      console.log('Logout successful - should navigate to login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
   };
 
   const handleToggleTheme = () => {

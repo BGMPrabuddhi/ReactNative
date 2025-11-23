@@ -6,20 +6,82 @@ import { User, Exercise } from '../types';
 export const authAPI = {
   login: async (credentials: { username: string; password: string }): Promise<User> => {
     try {
+      // Try DummyJSON API first (for demo users like 'emilys')
       const response = await axios.post(`${API_CONFIG.AUTH_API}/login`, credentials);
       return response.data;
     } catch (error: any) {
+      // If API login fails, check for locally registered users
+      try {
+        const registeredUsers = await import('@react-native-async-storage/async-storage').then(m => m.default);
+        const storedUsers = await registeredUsers.getItem('@zenloop_registered_users');
+        
+        if (storedUsers) {
+          const users = JSON.parse(storedUsers);
+          const user = users.find(
+            (u: any) => u.username === credentials.username && u.password === credentials.password
+          );
+          
+          if (user) {
+            // Generate a mock token for local user
+            const mockToken = `local_${Date.now()}_${Math.random().toString(36)}`;
+            return {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              firstName: user.firstName || '',
+              lastName: user.lastName || '',
+              token: mockToken,
+            };
+          }
+        }
+      } catch (localError) {
+        console.warn('Local user check failed:', localError);
+      }
+      
       throw new Error(error.response?.data?.message || 'Invalid username or password');
     }
   },
 
   register: async (userData: any): Promise<User> => {
     try {
-      // For dummy API, we'll add a user (this won't persist but will return success)
-      const response = await axios.post(`${API_CONFIG.USERS_API}/add`, userData);
-      return response.data;
+      // Store user locally for future login
+      const AsyncStorage = await import('@react-native-async-storage/async-storage').then(m => m.default);
+      const storedUsers = await AsyncStorage.getItem('@zenloop_registered_users');
+      const users = storedUsers ? JSON.parse(storedUsers) : [];
+      
+      // Check if username or email already exists
+      const existingUser = users.find(
+        (u: any) => u.username === userData.username || u.email === userData.email
+      );
+      
+      if (existingUser) {
+        throw new Error('Username or email already exists');
+      }
+      
+      // Create new user object
+      const newUser = {
+        id: users.length + 1,
+        username: userData.username,
+        email: userData.email,
+        password: userData.password, // In real app, this would be hashed
+        firstName: userData.firstName || '',
+        lastName: userData.lastName || '',
+      };
+      
+      // Store in local array
+      users.push(newUser);
+      await AsyncStorage.setItem('@zenloop_registered_users', JSON.stringify(users));
+      
+      // Also try DummyJSON API (won't persist but returns success)
+      try {
+        const response = await axios.post(`${API_CONFIG.USERS_API}/add`, userData);
+        return response.data;
+      } catch (apiError) {
+        // If API fails, return our local user
+        return newUser;
+      }
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Registration failed');
+      throw new Error(error.message || 'Registration failed');
     }
   },
 };

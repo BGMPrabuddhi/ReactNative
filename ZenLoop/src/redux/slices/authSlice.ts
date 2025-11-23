@@ -7,7 +7,7 @@ import { authAPI } from '../../services/api';
 const initialState: AuthState = {
   user: null,
   isAuthenticated: false,
-  loading: false,
+  loading: true,
   error: null,
 };
 
@@ -57,8 +57,14 @@ export const loadUser = createAsyncThunk('auth/loadUser', async (_, { rejectWith
 });
 
 export const logoutUser = createAsyncThunk('auth/logout', async () => {
-  await AsyncStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
-  await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+  try {
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_TOKEN);
+    await AsyncStorage.removeItem(STORAGE_KEYS.USER_DATA);
+    return true;
+  } catch (error) {
+    console.error('Logout error:', error);
+    throw error;
+  }
 });
 
 const authSlice = createSlice({
@@ -104,18 +110,37 @@ const authSlice = createSlice({
 
     // Load User
     builder
+      .addCase(loadUser.pending, (state) => {
+        state.loading = true;
+      })
       .addCase(loadUser.fulfilled, (state, action) => {
+        state.loading = false;
         if (action.payload) {
           state.isAuthenticated = true;
           state.user = action.payload;
         }
+      })
+      .addCase(loadUser.rejected, (state) => {
+        state.loading = false;
       });
 
     // Logout
-    builder.addCase(logoutUser.fulfilled, (state) => {
-      state.user = null;
-      state.isAuthenticated = false;
-    });
+    builder
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = null;
+      })
+      .addCase(logoutUser.rejected, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.isAuthenticated = false;
+        state.error = null;
+      });
   },
 });
 

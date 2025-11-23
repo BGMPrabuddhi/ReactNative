@@ -24,7 +24,20 @@ const RootNavigator: React.FC = () => {
     dispatch(loadTheme());
   }, []);
 
-  if (loading) {
+  useEffect(() => {
+    console.log('Auth state changed:', { isAuthenticated, loading });
+  }, [isAuthenticated, loading]);
+
+  // Show loading only on initial load, not during logout
+  const [initialLoad, setInitialLoad] = React.useState(true);
+  
+  useEffect(() => {
+    if (!loading && initialLoad) {
+      setInitialLoad(false);
+    }
+  }, [loading]);
+
+  if (loading && initialLoad) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
@@ -34,7 +47,9 @@ const RootNavigator: React.FC = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Navigator 
+        screenOptions={{ headerShown: false }}
+      >
         {isAuthenticated ? (
           <Stack.Screen name="Main" component={MainNavigator} />
         ) : (
