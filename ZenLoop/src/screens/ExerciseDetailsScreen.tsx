@@ -18,6 +18,23 @@ const ExerciseDetailsScreen: React.FC<ExerciseDetailsScreenProps> = ({ route, na
   const difficultyColor =
     DIFFICULTY_COLORS[exercise.difficulty as keyof typeof DIFFICULTY_COLORS] || colors.textSecondary;
 
+  // Function to get icon based on muscle group
+  const getMuscleIcon = (muscle: string): keyof typeof Feather.glyphMap => {
+    const iconMap: { [key: string]: keyof typeof Feather.glyphMap } = {
+      abdominals: 'crosshair',
+      biceps: 'zap',
+      chest: 'heart',
+      forearms: 'minus',
+      glutes: 'circle',
+      hamstrings: 'trending-up',
+      lats: 'maximize-2',
+      quadriceps: 'triangle',
+      shoulders: 'wind',
+      triceps: 'chevrons-down',
+    };
+    return iconMap[muscle.toLowerCase()] || 'activity';
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.card }]}>
@@ -30,7 +47,7 @@ const ExerciseDetailsScreen: React.FC<ExerciseDetailsScreenProps> = ({ route, na
 
       <ScrollView style={styles.content}>
         <View style={[styles.heroSection, { backgroundColor: colors.primary + '20' }]}>
-          <Feather name="activity" size={80} color={colors.primary} />
+          <Feather name={getMuscleIcon(exercise.muscle)} size={80} color={colors.primary} />
         </View>
 
         <View style={styles.section}>

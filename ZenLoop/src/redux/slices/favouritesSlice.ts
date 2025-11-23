@@ -32,10 +32,14 @@ const favouritesSlice = createSlice({
       const exists = state.items.some((item) => item.name === action.payload.name);
       if (!exists) {
         state.items.push(action.payload);
+        // Save to AsyncStorage immediately
+        AsyncStorage.setItem(STORAGE_KEYS.FAVOURITES, JSON.stringify(state.items));
       }
     },
     removeFavourite: (state, action: PayloadAction<string>) => {
       state.items = state.items.filter((item) => item.name !== action.payload);
+      // Save to AsyncStorage immediately
+      AsyncStorage.setItem(STORAGE_KEYS.FAVOURITES, JSON.stringify(state.items));
     },
     toggleFavourite: (state, action: PayloadAction<Exercise>) => {
       const index = state.items.findIndex((item) => item.name === action.payload.name);
@@ -44,6 +48,8 @@ const favouritesSlice = createSlice({
       } else {
         state.items.push(action.payload);
       }
+      // Save to AsyncStorage immediately after toggle
+      AsyncStorage.setItem(STORAGE_KEYS.FAVOURITES, JSON.stringify(state.items));
     },
   },
   extraReducers: (builder) => {

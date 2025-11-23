@@ -49,7 +49,6 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
 
   const handleToggleFavourite = (exercise: Exercise) => {
     dispatch(toggleFavourite(exercise));
-    dispatch(saveFavourites(favourites));
   };
 
   const isFavourite = (exercise: Exercise) => {
@@ -59,6 +58,23 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const filteredExercises = exercises.filter((exercise) =>
     exercise.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Function to get icon based on muscle group
+  const getMuscleIcon = (muscle: string): keyof typeof Feather.glyphMap => {
+    const iconMap: { [key: string]: keyof typeof Feather.glyphMap } = {
+      abdominals: 'crosshair',
+      biceps: 'zap',
+      chest: 'heart',
+      forearms: 'minus',
+      glutes: 'circle',
+      hamstrings: 'trending-up',
+      lats: 'maximize-2',
+      quadriceps: 'triangle',
+      shoulders: 'wind',
+      triceps: 'chevrons-down',
+    };
+    return iconMap[muscle.toLowerCase()] || 'activity';
+  };
 
   const renderExerciseCard = ({ item }: { item: Exercise }) => {
     const favourite = isFavourite(item);
@@ -73,7 +89,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       >
         <View style={styles.cardHeader}>
           <View style={[styles.iconContainer, { backgroundColor: colors.primary + '20' }]}>
-            <Feather name="activity" size={28} color={colors.primary} />
+            <Feather name={getMuscleIcon(item.muscle)} size={28} color={colors.primary} />
           </View>
           <TouchableOpacity
             onPress={() => handleToggleFavourite(item)}
@@ -133,21 +149,35 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <View style={styles.headerTop}>
-          <View>
-            <Text style={[styles.greeting, { color: colors.textSecondary }]}>Welcome back,</Text>
-            <Text style={[styles.username, { color: colors.text }]}>
-              {user?.firstName || user?.username || 'User'}
-            </Text>
+        <View style={styles.headerRow}>
+          {/* Brand Section - Left */}
+          <View style={styles.brandSection}>
+            <Text style={[styles.brandName, { color: colors.primary }]}>ZenLoop</Text>
+            <Text style={[styles.tagline, { color: colors.secondary }]}>Wellness & Fitness</Text>
           </View>
-          <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
-            <Text style={styles.avatarText}>
-              {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-            </Text>
+
+          {/* User Profile Card - Right */}
+          <View style={styles.profileCard}>
+            <View style={[styles.avatarContainer, { backgroundColor: colors.primary }]}>
+              <Text style={styles.avatarText}>
+                {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
+              </Text>
+            </View>
           </View>
         </View>
+      </View>
 
-        <View style={[styles.searchContainer, { backgroundColor: colors.background }]}>
+      {/* Welcome Section */}
+      <View style={[styles.welcomeSection, { backgroundColor: colors.background }]}>
+        <Text style={[styles.welcomeTitle, { color: colors.text }]}>
+          Hi, {user?.firstName || user?.username || 'there'}! 👋
+        </Text>
+        <Text style={[styles.welcomeSubtitle, { color: colors.textSecondary }]}>
+          Ready to crush your fitness goals today? Let's find the perfect workout for you!
+        </Text>
+
+        {/* Search Bar */}
+        <View style={[styles.searchContainer, { backgroundColor: colors.card }]}>
           <Feather name="search" size={20} color={colors.textSecondary} />
           <TextInput
             style={[styles.searchInput, { color: colors.text }]}
@@ -200,41 +230,68 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    padding: 20,
-    paddingTop: 60,
-    paddingBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 45,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
   },
-  headerTop: {
+  headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
   },
-  greeting: {
-    fontSize: 14,
+  brandSection: {
   },
-  username: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 4,
+  brandName: {
+    fontSize: 18,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  tagline: {
+    fontSize: 10,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+    marginTop: 2,
+    opacity: 0.7,
+  },
+  profileCard: {
+    padding: 0,
   },
   avatarContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   avatarText: {
     color: '#fff',
-    fontSize: 20,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  welcomeSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  welcomeTitle: {
+    fontSize: 24,
     fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  welcomeSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+    marginBottom: 16,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 12,
-    borderRadius: 10,
+    borderRadius: 12,
   },
   searchInput: {
     flex: 1,

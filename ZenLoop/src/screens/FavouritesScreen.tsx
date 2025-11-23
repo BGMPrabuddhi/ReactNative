@@ -14,6 +14,7 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const { items: favourites } = useAppSelector((state) => state.favourites);
   const { isDarkMode } = useAppSelector((state) => state.theme);
+  const { user } = useAppSelector((state) => state.auth);
   const colors = isDarkMode ? COLORS.dark : COLORS.light;
 
   const handleRemoveFavourite = (exercise: Exercise) => {
