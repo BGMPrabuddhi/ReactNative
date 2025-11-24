@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   inputWrapper: {
-    marginBottom: 4,
+    marginBottom: 16,
   },
   inputContainer: {
     flexDirection: 'row',
