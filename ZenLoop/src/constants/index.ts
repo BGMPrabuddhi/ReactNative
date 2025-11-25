@@ -1,6 +1,9 @@
+export * from './colors';
+export * from './theme';
+
 export const API_CONFIG = {
   EXERCISES_API: 'https://api.api-ninjas.com/v1/exercises',
-  EXERCISES_API_KEY: 'h4ofM4nAQ4soLP3o9aQ+Sg==EVqX4jOPANwxoIz0', // Get from https://api-ninjas.com
+  EXERCISES_API_KEY: 'lQrWJ8XQ16VNVRyrXQ4UcAasQ4zoRDqiIva0bFwV', // Get from https://api-ninjas.com
   AUTH_API: 'https://dummyjson.com/auth',
   USERS_API: 'https://dummyjson.com/users',
 };
@@ -15,15 +18,32 @@ export const STORAGE_KEYS = {
 
 export const MUSCLE_GROUPS = [
   'abdominals',
+  'abductors',
+  'adductors',
   'biceps',
+  'calves',
   'chest',
   'forearms',
   'glutes',
   'hamstrings',
   'lats',
+  'lower_back',
+  'middle_back',
+  'neck',
   'quadriceps',
-  'shoulders',
+  'traps',
   'triceps',
 ];
 
+export const EXERCISE_TYPES = [
+  'cardio',
+  'olympic_weightlifting',
+  'plyometrics',
+  'powerlifting',
+  'strength',
+  'stretching',
+  'strongman',
+];
+
 export const DIFFICULTY_LEVELS = ['beginner', 'intermediate', 'expert'];
+

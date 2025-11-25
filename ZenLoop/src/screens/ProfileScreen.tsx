@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch, Alert, TextInput } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
 import { logoutUser, updateUser } from '../redux/slices/authSlice';
 import { toggleTheme, saveTheme } from '../redux/slices/themeSlice';
-import { COLORS } from '../constants/colors';
+import { COLORS, SPACING, RADIUS, FONTS, SHADOWS } from '../constants';
+import { Card, Avatar, Button } from '../components';
 
 interface ProfileScreenProps {
   navigation: any;
@@ -257,21 +258,15 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <TouchableOpacity onPress={handlePickImage} style={styles.avatarContainer}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-          ) : (
-            <View style={[styles.avatarLarge, { backgroundColor: colors.primary }]}>
-              <Text style={styles.avatarText}>
-                {(user?.firstName?.[0] || user?.username?.[0] || 'U').toUpperCase()}
-              </Text>
-            </View>
-          )}
-          <View style={[styles.editImageBadge, { backgroundColor: colors.primary }]}>
-            <Feather name="camera" size={16} color="#fff" />
-          </View>
-        </TouchableOpacity>
+      <View style={[styles.header, { backgroundColor: colors.card }, SHADOWS.sm]}>
+        <Avatar
+          source={profileImage}
+          name={user?.firstName?.[0] || user?.username?.[0] || 'U'}
+          size="xlarge"
+          isDarkMode={isDarkMode}
+          onPress={handlePickImage}
+          showEditBadge
+        />
         <Text style={[styles.name, { color: colors.text }]}>
           {user?.firstName && user?.lastName
             ? `${user.firstName} ${user.lastName}`
@@ -283,21 +278,21 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
       </View>
 
       <ScrollView style={styles.content}>
-        <View style={[styles.statsContainer, { backgroundColor: colors.card }]}>
+        <Card isDarkMode={isDarkMode} style={styles.statsContainer}>
           <View style={styles.statItem}>
-            <Feather name="heart" size={24} color={colors.accent} />
+            <Feather name="heart" size={28} color={colors.accent} />
             <Text style={[styles.statValue, { color: colors.text }]}>{favourites.length}</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Favourites</Text>
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.statItem}>
-            <Feather name="activity" size={24} color={colors.secondary} />
+            <Feather name="activity" size={28} color={colors.secondary} />
             <Text style={[styles.statValue, { color: colors.text }]}>ZenLoop</Text>
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>Member</Text>
           </View>
-        </View>
+        </Card>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Card isDarkMode={isDarkMode} style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>Preferences</Text>
 
           <View style={styles.settingItem}>
@@ -316,9 +311,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               thumbColor="#fff"
             />
           </View>
-        </View>
+        </Card>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Card isDarkMode={isDarkMode} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Account</Text>
             {!isEditing && (
@@ -433,9 +428,9 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               </View>
             </View>
           )}
-        </View>
+        </Card>
 
-        <View style={[styles.section, { backgroundColor: colors.card }]}>
+        <Card isDarkMode={isDarkMode} style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.text }]}>Security</Text>
             {!isChangingPassword && (
@@ -522,15 +517,17 @@ const ProfileScreen: React.FC<ProfileScreenProps> = ({ navigation }) => {
               </View>
             </View>
           )}
-        </View>
+        </Card>
 
-        <TouchableOpacity
-          style={[styles.logoutButton, { backgroundColor: colors.error + '20' }]}
+        <Button
+          title="Logout"
           onPress={handleLogout}
-        >
-          <Feather name="log-out" size={20} color={colors.error} />
-          <Text style={[styles.logoutText, { color: colors.error }]}>Logout</Text>
-        </TouchableOpacity>
+          variant="danger"
+          icon="log-out"
+          iconPosition="left"
+          isDarkMode={isDarkMode}
+          style={styles.logoutButton}
+        />
 
         <Text style={[styles.version, { color: colors.textSecondary }]}>Version 1.0.0</Text>
       </ScrollView>
@@ -545,187 +542,113 @@ const styles = StyleSheet.create({
   header: {
     alignItems: 'center',
     paddingTop: 60,
-    paddingBottom: 30,
-    paddingHorizontal: 20,
-  },
-  avatarContainer: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatarLarge: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  editImageBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#fff',
-  },
-  avatarText: {
-    color: '#fff',
-    fontSize: 40,
-    fontWeight: 'bold',
+    paddingBottom: SPACING.xxxl,
+    paddingHorizontal: SPACING.lg,
   },
   name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: FONTS.sizes.xxl,
+    fontWeight: FONTS.weights.bold,
+    marginTop: SPACING.lg,
+    marginBottom: SPACING.xs,
   },
   email: {
-    fontSize: 16,
+    fontSize: FONTS.sizes.md,
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: SPACING.lg,
   },
   statsContainer: {
     flexDirection: 'row',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginBottom: SPACING.lg,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
+    gap: SPACING.sm,
   },
   divider: {
     width: 1,
-    marginHorizontal: 20,
+    marginHorizontal: SPACING.lg,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginTop: 8,
+    fontSize: FONTS.sizes.xl,
+    fontWeight: FONTS.weights.bold,
   },
   statLabel: {
-    fontSize: 12,
-    marginTop: 4,
+    fontSize: FONTS.sizes.xs,
+    fontWeight: FONTS.weights.medium,
   },
   section: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginBottom: SPACING.lg,
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: SPACING.md,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 16,
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    marginBottom: SPACING.md,
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: SPACING.sm,
   },
   settingLeft: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: SPACING.md,
   },
   settingText: {
-    fontSize: 16,
-    marginLeft: 12,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-  },
-  menuText: {
-    flex: 1,
-    fontSize: 16,
-    marginLeft: 12,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 20,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginLeft: 8,
-  },
-  version: {
-    textAlign: 'center',
-    fontSize: 12,
-    marginBottom: 20,
+    fontSize: FONTS.sizes.md,
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: SPACING.md,
   },
   inputLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 6,
+    fontSize: FONTS.sizes.sm,
+    fontWeight: FONTS.weights.medium,
+    marginBottom: SPACING.xs,
   },
   input: {
     borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
+    borderRadius: RADIUS.md,
+    padding: SPACING.md,
+    fontSize: FONTS.sizes.md,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: SPACING.md,
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(128, 128, 128, 0.2)',
   },
   infoContent: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: SPACING.md,
   },
   infoLabel: {
-    fontSize: 12,
-    marginBottom: 2,
+    fontSize: FONTS.sizes.sm,
+    marginBottom: SPACING.xs,
   },
   infoValue: {
-    fontSize: 16,
-    fontWeight: '500',
+    fontSize: FONTS.sizes.md,
+    fontWeight: FONTS.weights.medium,
   },
   editActions: {
     flexDirection: 'row',
-    gap: 12,
-    marginTop: 8,
+    gap: SPACING.md,
+    marginTop: SPACING.md,
   },
   actionButton: {
     flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
+    paddingVertical: SPACING.md,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -737,20 +660,28 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   actionButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
+    fontSize: FONTS.sizes.md,
+    fontWeight: FONTS.weights.semibold,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 12,
-    gap: 8,
+    padding: SPACING.md,
+    borderRadius: RADIUS.md,
+    marginTop: SPACING.md,
+    gap: SPACING.sm,
   },
   errorText: {
     flex: 1,
-    fontSize: 14,
+    fontSize: FONTS.sizes.sm,
+  },
+  logoutButton: {
+    marginBottom: SPACING.lg,
+  },
+  version: {
+    textAlign: 'center',
+    fontSize: FONTS.sizes.xs,
+    marginBottom: SPACING.lg,
   },
 });
 

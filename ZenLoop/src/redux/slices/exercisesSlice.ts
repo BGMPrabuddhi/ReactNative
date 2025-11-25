@@ -13,7 +13,9 @@ export const fetchExercises = createAsyncThunk(
   'exercises/fetch',
   async (muscle: string | undefined, { rejectWithValue }) => {
     try {
-      const response = await exercisesAPI.getExercises(muscle);
+      // Use free API parameters only
+      const params = muscle ? { muscle } : {};
+      const response = await exercisesAPI.getExercises(params);
       return response;
     } catch (error: any) {
       return rejectWithValue(error.message || 'Failed to fetch exercises');

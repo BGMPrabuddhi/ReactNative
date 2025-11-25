@@ -1,10 +1,11 @@
-import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, FlatList, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useAppDispatch, useAppSelector } from '../redux/hooks';
-import { toggleFavourite, saveFavourites } from '../redux/slices/favouritesSlice';
+import { toggleFavourite } from '../redux/slices/favouritesSlice';
 import { Exercise } from '../types';
-import { COLORS, DIFFICULTY_COLORS } from '../constants/colors';
+import { COLORS, DIFFICULTY_COLORS, SPACING, RADIUS, FONTS, SHADOWS } from '../constants';
+import { Card, Badge, EmptyState } from '../components';
 
 interface FavouritesScreenProps {
   navigation: any;
@@ -14,81 +15,120 @@ const FavouritesScreen: React.FC<FavouritesScreenProps> = ({ navigation }) => {
   const dispatch = useAppDispatch();
   const { items: favourites } = useAppSelector((state) => state.favourites);
   const { isDarkMode } = useAppSelector((state) => state.theme);
-  const { user } = useAppSelector((state) => state.auth);
   const colors = isDarkMode ? COLORS.dark : COLORS.light;
+  const [fadeAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 500,
+      useNativeDriver: true,
+    }).start();
+  }, []);
 
   const handleRemoveFavourite = (exercise: Exercise) => {
     dispatch(toggleFavourite(exercise));
-    dispatch(saveFavourites(favourites.filter((fav) => fav.name !== exercise.name)));
   };
 
-  const renderFavouriteCard = ({ item }: { item: Exercise }) => {
-    const difficultyColor =
-      DIFFICULTY_COLORS[item.difficulty as keyof typeof DIFFICULTY_COLORS] || colors.textSecondary;
+  const renderFavouriteCard = ({ item, index }: { item: Exercise; index: number }) => {
+    const difficultyColor = DIFFICULTY_COLORS[item.difficulty as keyof typeof DIFFICULTY_COLORS] || colors.textSecondary;
+    
+    const cardAnim = new Animated.Value(0);
+    Animated.spring(cardAnim, {
+      toValue: 1,
+      delay: index * 50,
+      useNativeDriver: true,
+      tension: 40,
+      friction: 7,
+    }).start();
 
     return (
-      <TouchableOpacity
-        style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
-        onPress={() => navigation.navigate('Home', {
-          screen: 'ExerciseDetails',
-          params: { exercise: item }
-        })}
-        activeOpacity={0.7}
+      <Animated.View
+        style={{
+          opacity: cardAnim,
+          transform: [{
+            translateX: cardAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-50, 0],
+            }),
+          }],
+        }}
       >
-        <View style={styles.cardContent}>
-          <View style={[styles.iconContainer, { backgroundColor: colors.accent + '20' }]}>
-            <Feather name="heart" size={28} color={colors.accent} />
-          </View>
+        <Card
+          onPress={() => navigation.navigate('Home', {
+            screen: 'ExerciseDetails',
+            params: { exercise: item }
+          })}
+          isDarkMode={isDarkMode}
+          style={styles.card}
+        >
+          <View style={styles.cardContent}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.accent + '15' }]}>
+              <Feather name="heart" size={28} color={colors.accent} />
+            </View>
 
-          <View style={styles.cardInfo}>
-            <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={[styles.cardMuscle, { color: colors.textSecondary }]}>
-              <Feather name="target" size={12} /> {item.muscle.toUpperCase()}
-            </Text>
-            <View style={styles.cardFooter}>
-              <View style={[styles.badge, { backgroundColor: difficultyColor + '20' }]}>
-                <Text style={[styles.badgeText, { color: difficultyColor }]}>
-                  {item.difficulty.toUpperCase()}
+            <View style={styles.cardInfo}>
+              <Text style={[styles.cardTitle, { color: colors.text }]} numberOfLines={2}>
+                {item.name}
+              </Text>
+              <View style={styles.muscleRow}>
+                <Feather name="target" size={12} color={colors.secondary} />
+                <Text style={[styles.cardMuscle, { color: colors.secondary }]}>
+                  {item.muscle.toUpperCase()}
                 </Text>
               </View>
+              <View style={styles.badgeRow}>
+                <Badge
+                  text={item.difficulty.toUpperCase()}
+                  color={difficultyColor}
+                  size="small"
+                />
+              </View>
             </View>
-          </View>
 
-          <TouchableOpacity
-            onPress={() => handleRemoveFavourite(item)}
-            style={styles.removeButton}
-          >
-            <Feather name="x" size={20} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      </TouchableOpacity>
+            <Card
+              onPress={() => handleRemoveFavourite(item)}
+              isDarkMode={isDarkMode}
+              style={[styles.removeButton, { backgroundColor: colors.error + '10' }]}
+              elevated={false}
+            >
+              <Feather name="x" size={18} color={colors.error} />
+            </Card>
+          </View>
+        </Card>
+      </Animated.View>
     );
   };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.card }]}>
-        <Text style={[styles.headerTitle, { color: colors.text }]}>My Favourites</Text>
-        <View style={[styles.countBadge, { backgroundColor: colors.accent }]}>
-          <Text style={styles.countText}>{favourites.length}</Text>
+      <Animated.View style={[styles.header, { backgroundColor: colors.card, opacity: fadeAnim }, SHADOWS.sm]}>
+        <View style={styles.headerContent}>
+          <View>
+            <Text style={[styles.headerTitle, { color: colors.text }]}>My Favourites</Text>
+            <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
+              Your saved exercises
+            </Text>
+          </View>
+          <View style={[styles.countBadge, { backgroundColor: colors.accent }]}>
+            <Text style={styles.countText}>{favourites.length}</Text>
+          </View>
         </View>
-      </View>
+      </Animated.View>
 
       <FlatList
         data={favourites}
         renderItem={renderFavouriteCard}
         keyExtractor={(item, index) => `${item.name}-${index}`}
         contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Feather name="heart" size={80} color={colors.textSecondary} />
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Favourites Yet</Text>
-            <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Start adding exercises to your favourites by tapping the heart icon
-            </Text>
-          </View>
+          <EmptyState
+            icon="heart"
+            title="No Favourites Yet"
+            description="Start adding exercises to your favourites by tapping the heart icon on any exercise card"
+            isDarkMode={isDarkMode}
+          />
         }
       />
     </View>
@@ -100,43 +140,42 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    paddingHorizontal: SPACING.lg,
+    paddingTop: 50,
+    paddingBottom: SPACING.md,
+  },
+  headerContent: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: FONTS.sizes.xxxl,
+    fontWeight: FONTS.weights.bold,
+    marginBottom: SPACING.xs,
+  },
+  headerSubtitle: {
+    fontSize: FONTS.sizes.md,
   },
   countBadge: {
-    minWidth: 32,
-    height: 32,
-    borderRadius: 16,
+    minWidth: 44,
+    height: 44,
+    borderRadius: RADIUS.full,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 10,
+    paddingHorizontal: SPACING.md,
   },
   countText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
   },
   listContainer: {
-    padding: 20,
+    padding: SPACING.lg,
+    paddingBottom: SPACING.massive,
   },
   card: {
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    marginBottom: SPACING.lg,
   },
   cardContent: {
     flexDirection: 'row',
@@ -145,56 +184,40 @@ const styles = StyleSheet.create({
   iconContainer: {
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: RADIUS.md,
     justifyContent: 'center',
     alignItems: 'center',
   },
   cardInfo: {
     flex: 1,
-    marginLeft: 16,
+    marginLeft: SPACING.md,
   },
   cardTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 4,
+    fontSize: FONTS.sizes.lg,
+    fontWeight: FONTS.weights.bold,
+    marginBottom: SPACING.xs,
+  },
+  muscleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: SPACING.xs,
+    marginBottom: SPACING.sm,
   },
   cardMuscle: {
-    fontSize: 12,
-    marginBottom: 8,
+    fontSize: FONTS.sizes.xs,
+    fontWeight: FONTS.weights.semibold,
   },
-  cardFooter: {
+  badgeRow: {
     flexDirection: 'row',
-    gap: 8,
-  },
-  badge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  badgeText: {
-    fontSize: 10,
-    fontWeight: '600',
+    gap: SPACING.xs,
   },
   removeButton: {
-    padding: 8,
-  },
-  emptyContainer: {
-    flex: 1,
+    width: 36,
+    height: 36,
+    borderRadius: RADIUS.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 40,
-  },
-  emptyTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 24,
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontSize: 16,
-    textAlign: 'center',
-    lineHeight: 24,
+    padding: 0,
   },
 });
 

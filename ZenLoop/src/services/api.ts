@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_CONFIG } from '../constants';
+import { API_CONFIG, STORAGE_KEYS } from '../constants';
 import { User, Exercise } from '../types';
 
 // Auth API
@@ -13,7 +13,7 @@ export const authAPI = {
       // If API login fails, check for locally registered users
       try {
         const registeredUsers = await import('@react-native-async-storage/async-storage').then(m => m.default);
-        const storedUsers = await registeredUsers.getItem('@zenloop_registered_users');
+        const storedUsers = await registeredUsers.getItem(STORAGE_KEYS.REGISTERED_USERS);
         
         if (storedUsers) {
           const users = JSON.parse(storedUsers);
@@ -46,7 +46,7 @@ export const authAPI = {
     try {
       // Store user locally for future login
       const AsyncStorage = await import('@react-native-async-storage/async-storage').then(m => m.default);
-      const storedUsers = await AsyncStorage.getItem('@zenloop_registered_users');
+      const storedUsers = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_USERS);
       const users = storedUsers ? JSON.parse(storedUsers) : [];
       
       // Check if username or email already exists
@@ -70,7 +70,7 @@ export const authAPI = {
       
       // Store in local array
       users.push(newUser);
-      await AsyncStorage.setItem('@zenloop_registered_users', JSON.stringify(users));
+      await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(users));
       
       // Also try DummyJSON API (won't persist but returns success)
       try {
@@ -86,31 +86,37 @@ export const authAPI = {
   },
 };
 
-// Exercises API
+// Exercises API - Using only FREE parameters (name, type, muscle, difficulty)
 export const exercisesAPI = {
-  getExercises: async (muscle?: string, limit: number = 10): Promise<Exercise[]> => {
+  getExercises: async (params?: {
+    name?: string;
+    type?: string;
+    muscle?: string;
+    difficulty?: string;
+  }): Promise<Exercise[]> => {
     try {
-      const params: any = { offset: 0 };
+      console.log('📡 Fetching exercises with params:', params);
       
-      if (muscle) {
-        params.muscle = muscle;
-      }
-      
-      // Note: You need to get a free API key from https://api-ninjas.com
-      // and update API_CONFIG.EXERCISES_API_KEY
+      // Only use free API parameters (no offset - premium only)
       const response = await axios.get(API_CONFIG.EXERCISES_API, {
-        params,
+        params: params || {},
         headers: {
           'X-Api-Key': API_CONFIG.EXERCISES_API_KEY,
         },
+        timeout: 10000,
       });
 
-      // Return limited results
-      return response.data.slice(0, limit);
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        console.log(`✅ Fetched ${response.data.length} exercises from API`);
+        return response.data;
+      } else {
+        console.warn('⚠️ No exercises returned from API, using dummy data');
+        return getDummyExercises(params?.muscle);
+      }
     } catch (error: any) {
       // Fallback to dummy data if API fails
-      console.warn('API call failed, using dummy data:', error.message);
-      return getDummyExercises(muscle);
+      console.error('❌ API call failed:', error.response?.data?.error || error.message);
+      return getDummyExercises(params?.muscle);
     }
   },
 };
